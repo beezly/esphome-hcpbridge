@@ -12,6 +12,17 @@ const HoermannCommand HoermannCommand::STARTVENTPOSITION = HoermannCommand(0x020
 const HoermannCommand HoermannCommand::STARTTOGGLELAMP = HoermannCommand(0x0100, 0x0800, 0x0200, 0x0200);
 const HoermannCommand HoermannCommand::WAITING = HoermannCommand(0x0000, 0x0000, 0x0000, 0x0000);
 
+static const char* commandName(const HoermannCommand *cmd) {
+  if (cmd == &HoermannCommand::STARTOPENDOOR) return "OPEN";
+  if (cmd == &HoermannCommand::STARTCLOSEDOOR) return "CLOSE";
+  if (cmd == &HoermannCommand::STARTIMPULSE) return "IMPULSE";
+  if (cmd == &HoermannCommand::STARTOPENDOORHALF) return "HALF";
+  if (cmd == &HoermannCommand::STARTVENTPOSITION) return "VENT";
+  if (cmd == &HoermannCommand::STARTTOGGLELAMP) return "TOGGLE LAMP";
+  if (cmd == &HoermannCommand::WAITING) return "WAITING";
+  return "UNKNOWN";
+}
+
 TaskHandle_t modBusTask;
 void modbusServeTask(void *parameter);
 
@@ -114,12 +125,12 @@ Modbus::ResultCode HoermannGarageEngine::onRequest(Modbus::FunctionCode fc, cons
     if (!this->state->ready) {
       ESP_LOGI(TAG_HCI, "First full command poll received, bus is ready");
       this->state->ready = true;
+      this->state->changed = true;
     }
+    ESP_LOGV(TAG_HCI, "Full command poll");
     mb.Reg(HREG(0x9CB9 + 0), (uint16_t)0x0000);
     mb.Reg(HREG(0x9CB9 + 1), (uint16_t)0x0001);
     setCommandValuesToRead();
-    // mb.Reg(HREG(0x9CB9+2),(uint16_t)0x0000);
-    // mb.Reg(HREG(0x9CB9+3),(uint16_t)0x0000);
     mb.Reg(HREG(0x9CB9 + 4), (uint16_t)0x0000);
     mb.Reg(HREG(0x9CB9 + 5), (uint16_t)0x0000);
     mb.Reg(HREG(0x9CB9 + 6), (uint16_t)0x0000);
@@ -130,12 +141,12 @@ Modbus::ResultCode HoermannGarageEngine::onRequest(Modbus::FunctionCode fc, cons
   {
     mb.Reg(HREG(0x9CB9 + 0), (uint16_t)0x0004);
     mb.Reg(HREG(0x9CB9 + 1), (uint16_t)0x0000);
-    ESP_LOGD(TAG_HCI, "executing empty command");
+    ESP_LOGV(TAG_HCI, "Empty command poll");
   }
   // BusScan
   else if (fc == Modbus::FC_READWRITE_REGS && data.regWrite.address == 0x9C41 && data.regWriteCount == 0x03 && data.regRead.address == 0x9CB9 && data.regReadCount == 0x05)
   {
-    ESP_LOGD(TAG_HCI, "executing busscan");
+    ESP_LOGI(TAG_HCI, "Bus scan response sent");
     mb.Reg(HREG(0x9CB9 + 0), (uint16_t)0x0000);
     mb.Reg(HREG(0x9CB9 + 1), (uint16_t)0x0005);
     mb.Reg(HREG(0x9CB9 + 2), (uint16_t)0x0430);
@@ -144,7 +155,7 @@ Modbus::ResultCode HoermannGarageEngine::onRequest(Modbus::FunctionCode fc, cons
   }
   else if (fc == Modbus::FC_WRITE_REGS && data.reg.address == 0x9D31)
   {
-    // ESP_LOGD("ON_REQ", "on Status Update (cnt: %d)",data.regCount);
+    ESP_LOGV(TAG_HCI, "Broadcast status update (regs: %d)", data.regCount);
   }
   else
   {
@@ -170,7 +181,7 @@ void HoermannGarageEngine::setCommandValuesToRead()
       // Send it
       regPlug2Value = nextCommand->commandRegPlus2Value;
       regPlug3Value = nextCommand->commandRegPlus3Value;
-      ESP_LOGI(TAG_HCI, "command start %x %x", regPlug2Value, regPlug3Value);
+      ESP_LOGI(TAG_HCI, "Sending %s command (press)", commandName(nextCommand));
       commandWrittenOn = millis();
       // It was written and it can be cleared
     }
@@ -178,7 +189,7 @@ void HoermannGarageEngine::setCommandValuesToRead()
     {
       regPlug2Value = nextCommand->commandEndPlus2Value;
       regPlug3Value = nextCommand->commandEndPlus3Value;
-      ESP_LOGI(TAG_HCI, "command dispose %x %x", regPlug2Value, regPlug3Value);
+      ESP_LOGI(TAG_HCI, "Sending %s command (release)", commandName(nextCommand));
       // Reset Variables
       commandWrittenOn = 0;
       nextCommand = nullptr;
@@ -303,15 +314,16 @@ void HoermannGarageEngine::setCommand(bool cond, const HoermannCommand *command)
   {
     if (!this->state->ready)
     {
-      ESP_LOGW(TAG_HCI, "Command rejected: bus not ready (master has not sent full command poll yet)");
+      ESP_LOGW(TAG_HCI, "%s command rejected: bus not ready (master has not sent full command poll yet)", commandName(command));
       return;
     }
     if (nextCommand != nullptr)
     {
-      ESP_LOGW(TAG_HCI, "Last Command was not yet fetched by modbus!");
+      ESP_LOGW(TAG_HCI, "%s command rejected: previous %s command still pending", commandName(command), commandName(nextCommand));
     }
     else
     {
+      ESP_LOGI(TAG_HCI, "%s command queued", commandName(command));
       nextCommand = command;
     }
   }
