@@ -46,6 +46,12 @@ void HCPBridge::update() {
     this->engine->state->clearChanged();
     this->state_callback_.call();
   }
+  // Test log to verify logging works from this component
+  static bool logged_ready = false;
+  if (!logged_ready && this->engine->state->ready) {
+    ESP_LOGI(TAG, "TEST: Bus is ready (this confirms logging works)");
+    logged_ready = true;
+  }
 }
 }  // namespace hcpbridge
 }  // namespace esphome
