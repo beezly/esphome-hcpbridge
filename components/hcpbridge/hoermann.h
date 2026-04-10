@@ -6,6 +6,7 @@
 
 #include <Arduino.h>
 #include <Stream.h>
+#include "esphome/core/log.h"
 
 #include "ModbusRTU.h"
 
