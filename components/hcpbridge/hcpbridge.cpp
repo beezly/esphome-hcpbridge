@@ -22,6 +22,25 @@ void HCPBridge::add_on_state_callback(std::function<void()> &&callback, const ch
   this->state_callback_.add(std::move(wrapped_callback));
 }
 
+void HCPBridge::on_safe_shutdown() {
+  ESP_LOGI(TAG, "Safe shutdown: waiting for next Modbus response before stopping");
+  unsigned long lastResponse = this->engine->state->lastModbusRespone;
+  unsigned long start = millis();
+
+  // Wait up to 5 seconds for the master to poll us one more time,
+  // giving us maximum time before the next poll to reboot cleanly.
+  // The Modbus task continues running on core 1 while we wait here on core 0.
+  while ((millis() - start) < 5000) {
+    if (this->engine->state->lastModbusRespone > lastResponse) {
+      ESP_LOGI(TAG, "Master polled us, shutting down Modbus now");
+      break;
+    }
+    delay(1);
+  }
+
+  this->engine->shutdownModbus();
+}
+
 void HCPBridge::update() {
   if (this->engine->state->changed) {
     this->engine->state->clearChanged();

@@ -108,6 +108,7 @@ public:
 
     void setup(int8_t rx, int8_t tx, int8_t rts);
     void handleModbus();
+    void shutdownModbus();
     Modbus::ResultCode onRequest(Modbus::FunctionCode fc, const Modbus::RequestData data);
     void setCommandValuesToRead();
     uint16_t onDoorPositonChanged(TRegister *reg, uint16_t val);
@@ -142,5 +143,6 @@ private:
     ModbusRTU mb;                                 // ModbusRTU instance, the man behind the curtain
     const HoermannCommand *nextCommand = nullptr; // Next Command to transmit
     unsigned long commandWrittenOn = 0;           // When was last command written (wait 100ms before end of command is transmitted)
+    int8_t txPin = -1;                            // TX pin number, stored for tri-stating during shutdown
 };
 #endif

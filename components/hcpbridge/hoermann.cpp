@@ -38,6 +38,7 @@ HoermannGarageEngine &HoermannGarageEngine::getInstance()
 
 void HoermannGarageEngine::setup(int8_t rx, int8_t tx, int8_t rts)
 {
+  this->txPin = tx;
   RS485.begin(57600, SERIAL_8E1, rx, tx);
   if (rts == -1) {
     mb.begin(&RS485);
@@ -89,6 +90,18 @@ void HoermannGarageEngine::setup(int8_t rx, int8_t tx, int8_t rts)
 void HoermannGarageEngine::handleModbus()
 {
   mb.task();
+}
+
+void HoermannGarageEngine::shutdownModbus()
+{
+  ESP_LOGI(TAG_HCI, "Shutting down Modbus: stopping task, flushing serial, tri-stating TX");
+  vTaskDelete(modBusTask);
+  RS485.flush();
+  RS485.end();
+  if (this->txPin >= 0) {
+    pinMode(this->txPin, INPUT);  // tri-state TX to avoid jamming bus during reboot
+  }
+  vTaskDelay(pdMS_TO_TICKS(10));  // brief delay to ensure TX line settles
 }
 
 Modbus::ResultCode HoermannGarageEngine::onRequest(Modbus::FunctionCode fc, const Modbus::RequestData data)
