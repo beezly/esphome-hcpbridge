@@ -111,6 +111,10 @@ Modbus::ResultCode HoermannGarageEngine::onRequest(Modbus::FunctionCode fc, cons
   // Command Requst (Internal State representation)
   if (fc == Modbus::FC_READWRITE_REGS && data.regWrite.address == 0x9C41 && data.regWriteCount == 0x02 && data.regRead.address == 0x9CB9 && data.regReadCount == 0x08)
   {
+    if (!this->state->ready) {
+      ESP_LOGI(TAG_HCI, "First full command poll received, bus is ready");
+      this->state->ready = true;
+    }
     mb.Reg(HREG(0x9CB9 + 0), (uint16_t)0x0000);
     mb.Reg(HREG(0x9CB9 + 1), (uint16_t)0x0001);
     setCommandValuesToRead();
@@ -297,6 +301,11 @@ void HoermannGarageEngine::setCommand(bool cond, const HoermannCommand *command)
 {
   if (cond)
   {
+    if (!this->state->ready)
+    {
+      ESP_LOGW(TAG_HCI, "Command rejected: bus not ready (master has not sent full command poll yet)");
+      return;
+    }
     if (nextCommand != nullptr)
     {
       ESP_LOGW(TAG_HCI, "Last Command was not yet fetched by modbus!");

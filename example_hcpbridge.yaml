@@ -47,6 +47,9 @@ binary_sensor:
     is_connected:
       name: "${connection_state}"
       id: sensor_connected
+    is_ready:
+      name: "${name} Ready"
+      id: sensor_ready
     relay_state:
       name: "${relay_name}"
       id: sensor_relay

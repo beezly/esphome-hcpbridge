@@ -84,6 +84,7 @@ public:
     bool debMessage = false;
     float gotoPosition = 0.0f;
     bool valid = false;
+    bool ready = false;  // true once the master sends a full command poll (not just bus scan)
 
     void setTargetPosition(float targetPosition);
     void setGotoPosition(float setPosition);
