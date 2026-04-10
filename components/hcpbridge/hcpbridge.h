@@ -15,6 +15,7 @@ class HCPBridge : public PollingComponent {
   void setup() override;
   void update() override;
   void on_safe_shutdown() override;
+  float get_setup_priority() const override { return esphome::setup_priority::BUS; }
   void set_tx_pin(InternalGPIOPin *tx_pin) { this->tx_pin_ = tx_pin; }
   void set_rx_pin(InternalGPIOPin *rx_pin) { this->rx_pin_ = rx_pin; }
   void set_rts_pin(InternalGPIOPin *rts_pin) { this->rts_pin_ = rts_pin; }
