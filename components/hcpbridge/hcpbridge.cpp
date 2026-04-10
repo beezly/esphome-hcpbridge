@@ -42,15 +42,21 @@ void HCPBridge::on_safe_shutdown() {
 }
 
 void HCPBridge::update() {
+  static bool logged_valid = false;
+  static bool logged_ready = false;
+
+  if (!logged_valid && this->engine->state->valid) {
+    ESP_LOGI(TAG, "Bus connected (motor is polling)");
+    logged_valid = true;
+  }
+  if (!logged_ready && this->engine->state->ready) {
+    ESP_LOGI(TAG, "Bus ready (full command polls active, commands accepted)");
+    logged_ready = true;
+  }
+
   if (this->engine->state->changed) {
     this->engine->state->clearChanged();
     this->state_callback_.call();
-  }
-  // Test log to verify logging works from this component
-  static bool logged_ready = false;
-  if (!logged_ready && this->engine->state->ready) {
-    ESP_LOGI(TAG, "TEST: Bus is ready (this confirms logging works)");
-    logged_ready = true;
   }
 }
 }  // namespace hcpbridge

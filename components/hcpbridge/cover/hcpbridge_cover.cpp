@@ -35,19 +35,25 @@ cover::CoverTraits HCPBridgeCover::get_traits() {
 }
 
 void HCPBridgeCover::control(const cover::CoverCall &call) {
+  bool bus_ready = this->parent_->engine->state->ready;
   if (call.get_stop()) {
+    ESP_LOGI(TAG, "STOP command requested (bus %s)", bus_ready ? "ready" : "NOT READY");
     this->parent_->engine->stopDoor();
   }
   if (call.get_position().has_value()) {
     if (call.get_position().value() == 1.0f) {
+      ESP_LOGI(TAG, "OPEN command requested (bus %s)", bus_ready ? "ready" : "NOT READY");
       this->parent_->engine->openDoor();
     } else if (call.get_position().value() == 0.0f) {
+      ESP_LOGI(TAG, "CLOSE command requested (bus %s)", bus_ready ? "ready" : "NOT READY");
       this->parent_->engine->closeDoor();
     } else {
+      ESP_LOGI(TAG, "SET POSITION %d%% command requested (bus %s)", (int)(call.get_position().value() * 100.0f), bus_ready ? "ready" : "NOT READY");
       this->parent_->engine->setPosition(call.get_position().value() * 100.0f);
     }
   }
   if (call.get_toggle()) {
+    ESP_LOGI(TAG, "IMPULSE command requested (bus %s)", bus_ready ? "ready" : "NOT READY");
     this->parent_->engine->impulseDoor();
   }
 }
