@@ -4,9 +4,9 @@
 #define HOERMANN_H_
 #define MODBUSRTU_DEBUG 1
 
+#include "esphome/core/log.h"
 #include <Arduino.h>
 #include <Stream.h>
-#include "esphome/core/log.h"
 
 #include "ModbusRTU.h"
 
